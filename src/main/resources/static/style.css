@@ -42,7 +42,7 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 .controls select { color: var(--text); font-size: 14px; }
 
 .layout { display: grid; grid-template-columns: minmax(0, auto) minmax(320px, 1fr); gap: 16px; padding: 16px; max-width: 1280px; margin: auto; }
-.board-column { --size: min(calc(100vh - 290px), calc(100vw - 490px)); width: calc(max(var(--size), 300px) + 62px); }
+.board-column { --size: min(calc(100vh - 370px), calc(100vw - 490px)); width: calc(max(var(--size), 300px) + 62px); }
 .board-wrap { display: flex; gap: 8px; }
 .board-frame {
     flex: 1; min-width: 0; padding: 14px; border-radius: 10px;
@@ -92,7 +92,9 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 .status-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-top: 6px; padding-left: 34px; }
 .status { font-weight: 600; color: var(--on-wood); }
 .actions { display: flex; gap: 6px; }
-.verdict { margin: 10px 0 0 34px; padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--q, var(--line)); border-radius: 6px; }
+.verdicts { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 0 34px; }
+.verdict-who { display: inline-block; min-width: 30px; margin-right: 4px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.verdict { padding: 6px 12px; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--q, var(--line)); border-radius: 6px; }
 .verdict b { color: var(--q); }
 .lesson-goal { margin: 0 0 10px 34px; padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
 

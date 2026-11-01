@@ -42,11 +42,19 @@ class GameControllerTest {
         mvc.perform(post("/api/games/" + id + "/moves").contentType(MediaType.APPLICATION_JSON).content(moveBody("e2e4")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.moves.length()").value(2))
-                .andExpect(jsonPath("$.moves[0].review.quality").exists());
+                .andExpect(jsonPath("$.moves[0].review.quality").exists())
+                .andExpect(jsonPath("$.moves[1].review.quality").exists());
         mvc.perform(post("/api/games/" + id + "/undo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.moves.length()").value(0))
                 .andExpect(jsonPath("$.evalText").exists());
+    }
+
+    @Test
+    void marksMatingMoveInLegalMoveNotation() throws Exception {
+        mvc.perform(post("/api/games").contentType(MediaType.APPLICATION_JSON).content("{\"level\":\"BEGINNER\",\"lesson\":\"BACK_RANK\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.legalMoveSans.a1a8").value("Ra8#"));
     }
 
     @Test

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CoachPromptBuilderTest {
@@ -34,10 +35,37 @@ class CoachPromptBuilderTest {
     }
 
     @Test
-    void botMoveFocusFallsBackToPlayerMove() {
+    void reviewsBotMoveWhenAskedAboutIt() {
         Game game = games.startGame(true, Level.BEGINNER);
         games.playMove(game.id(), "a2a3");
-        assertTrue(builder.build(game, 1, "?").contains("Разбираемый ход ученика: 1. a3"));
+        String prompt = builder.build(game, 1, "?");
+        assertTrue(prompt.contains("Разбираемый ход бота: 1... " + game.moves().get(1).san()), prompt);
+        assertTrue(prompt.contains("после хода бота оценка"), prompt);
+    }
+
+    @Test
+    void lastPlayerMoveIsReviewedWithBotReply() {
+        Game game = games.startGame(true, Level.BEGINNER);
+        games.playMove(game.id(), "a2a3");
+        String prompt = builder.build(game, 0, "?");
+        assertTrue(prompt.contains("Разбираемый ход ученика: 1. a3"), prompt);
+        assertTrue(prompt.contains("Разбираемый ход бота: 1... "), prompt);
+    }
+
+    @Test
+    void earlierMoveIsReviewedAlone() {
+        Game game = games.startGame(true, Level.BEGINNER);
+        games.playMove(game.id(), "a2a3");
+        games.playMove(game.id(), game.board().legalMoves().get(0).toUci());
+        String prompt = builder.build(game, 0, "?");
+        assertTrue(prompt.contains("Разбираемый ход ученика: 1. a3"), prompt);
+        assertFalse(prompt.contains("Разбираемый ход бота"), prompt);
+    }
+
+    @Test
+    void botOpeningMoveIsReviewedBeforePlayerMoves() {
+        Game game = games.startGame(false, Level.BEGINNER);
+        assertTrue(builder.build(game, null, "?").contains("Разбираемый ход бота: 1. "));
     }
 
     @Test

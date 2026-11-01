@@ -27,7 +27,7 @@ public class CoachPromptBuilder {
 
     public static final String SYSTEM_PROMPT = """
             Ты — терпеливый шахматный тренер в приложении, где ученик играет с ботом. Ученик спрашивает,
-            почему его ход хорош или плох и почему нужно было играть иначе. Отвечай на языке ученика.
+            почему его ход или ход бота хорош или плох и почему нужно было играть иначе. Отвечай на языке ученика.
 
             К каждому вопросу приложение прикладывает блок <факты>: текущую позицию, список ходов и
             расчёты движка. Расчёты движка — источник истины о том, какой ход сильнее и какие варианты
@@ -61,11 +61,11 @@ public class CoachPromptBuilder {
         this.engine = engine;
     }
 
-    /** @param focusPly номер хода (с нуля), про который спрашивает ученик; null — последний ход ученика */
+    /** @param focusPly номер хода (с нуля), про который спрашивает ученик: его или бота; null — последний ход ученика */
     public String build(Game game, Integer focusPly, String question) {
         StringBuilder facts = new StringBuilder("<факты>\n");
         appendGameSummary(facts, game);
-        findFocus(game.moves(), focusPly).ifPresent(focus -> appendReview(facts, focus, question));
+        movesToReview(game.moves(), focusPly).forEach(move -> appendReview(facts, move, question));
         List<ScoredMove> analysis = game.analysis();
         if (!analysis.isEmpty()) {
             facts.append("\nРасчёт текущей позиции (ход и оценка, от лучшего к худшему):\n");
@@ -90,9 +90,19 @@ public class CoachPromptBuilder {
                 .append("Сейчас ходят ").append(board.isWhiteToMove() ? "белые" : "чёрные").append(".\n");
     }
 
-    /** Выбранный ход, а если это ход бота или выбора нет — последний ход ученика. */
+    /** Вместе с последним ходом ученика разбираем и ответ бота: на экране видны оценки обоих, спросить могут про любой. */
+    private static List<MoveRecord> movesToReview(List<MoveRecord> moves, Integer focusPly) {
+        if (moves.isEmpty()) return List.of();
+        MoveRecord last = moves.get(moves.size() - 1);
+        Optional<MoveRecord> focus = findFocus(moves, focusPly);
+        if (focus.isEmpty()) return List.of(last);
+        boolean focusIsBeforeBotReply = !last.byPlayer() && moves.size() >= 2 && moves.get(moves.size() - 2) == focus.get();
+        return focusIsBeforeBotReply ? List.of(focus.get(), last) : List.of(focus.get());
+    }
+
+    /** Выбранный ход, а если выбора нет — последний ход ученика. */
     private static Optional<MoveRecord> findFocus(List<MoveRecord> moves, Integer focusPly) {
-        if (focusPly != null && focusPly >= 0 && focusPly < moves.size() && moves.get(focusPly).byPlayer()) {
+        if (focusPly != null && focusPly >= 0 && focusPly < moves.size()) {
             return Optional.of(moves.get(focusPly));
         }
         for (int i = moves.size() - 1; i >= 0; i--) {
@@ -104,14 +114,14 @@ public class CoachPromptBuilder {
     private void appendReview(StringBuilder facts, MoveRecord focus, String question) {
         MoveReview review = focus.review();
         Board before = focus.before();
-        facts.append("\nРазбираемый ход ученика: ").append(before.fullmoveNumber())
+        facts.append(focus.byPlayer() ? "\nРазбираемый ход ученика: " : "\nРазбираемый ход бота: ").append(before.fullmoveNumber())
                 .append(before.isWhiteToMove() ? ". " : "... ").append(focus.san()).append('\n')
                 .append("Позиция перед ходом (FEN): ").append(before.toFen()).append('\n')
                 .append("Вердикт: ").append(review.quality().label())
                 .append(String.format(Locale.ROOT, " (потеря шанса на победу: %.1f%%)", review.winPercentLoss())).append('\n')
                 .append("Лучший ход по движку: ").append(review.bestSan())
                 .append(", оценка ").append(EvalFormatter.format(review.evalBefore()))
-                .append("; после хода ученика оценка ").append(EvalFormatter.format(review.evalAfter())).append('\n')
+                .append(focus.byPlayer() ? "; после хода ученика оценка " : "; после хода бота оценка ").append(EvalFormatter.format(review.evalAfter())).append('\n')
                 .append("Все ходы в той позиции (ход и оценка, от лучшего к худшему):\n");
         appendRanking(facts, before, focus.ranking());
         appendLines(facts, before, focus.ranking(), focus.move(), question);

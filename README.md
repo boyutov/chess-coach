@@ -8,11 +8,12 @@ The interface and the coach's default language are Russian. The coach replies in
 ## Features
 
 - **Play the bot:** four difficulty levels, as White or Black.
-- **Move review:** every move is rated from "best move" to "blunder", with an evaluation bar and a material count.
+- **Move review:** your moves and the bot's are rated from "best move" to "blunder", with an evaluation bar and a material count.
+- **Sound:** separate sounds for a move, check and checkmate, with a mute button. The sounds come from lichess (AGPLv3+, see `src/main/resources/static/sounds/NOTICE.md`).
 - **Chat coach:** explains moves using the engine's calculations and recognizes moves in your question,
-  including Russian notation such as "почему не Кf3?". Click an earlier move to ask about it.
+  including Russian notation such as "почему не Кf3?". Click an earlier move, yours or the bot's, to ask about it.
 - **Two-step hints:** the first click highlights the piece, the second draws an arrow.
-- **Premoves:** queue a move while the bot is thinking. Right-click the board to cancel it.
+- **Premoves:** queue several moves while the bot is thinking, choosing the piece for a promotion. Right-click the board to cancel the queue.
 - **Instant undo:** takes back your last move and the bot's reply.
 - **Lessons:** back-rank mate, knight fork, ladder mate, queen mate, king and pawn endgame, and opening principles.
 

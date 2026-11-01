@@ -1,7 +1,8 @@
 import { renderBoard } from './board-view.js';
 import { whiteSharePercent } from './chess.js';
 import { byId, element } from './dom.js';
-import { isLive, reviewedMove, state } from './state.js';
+import { isMuted } from './sounds.js';
+import { isLive, reviewedMove, state, visibleReviews } from './state.js';
 
 /** Перерисовывает весь экран по текущему состоянию. */
 export function render() {
@@ -14,13 +15,18 @@ export function render() {
 }
 
 export function renderStatus() {
-    const { premove, busy, premoveNote, game } = state;
+    const { premoves, busy, premoveNote, game } = state;
     let text = game.statusText;
-    if (premove) text = `Бот думает… Предварительный ход: ${premove.slice(0, 2)}–${premove.slice(2, 4)}`;
+    if (premoves.length > 0) text = `Бот думает… Предварительные ходы: ${premoves.map(premoveText).join(', ')}`;
     else if (busy) text = 'Бот думает… Можно сделать предварительный ход';
     else if (!isLive()) text = 'Просмотр хода — нажмите последний ход, чтобы вернуться';
     else if (premoveNote) text = premoveNote;
     byId('status').textContent = text;
+}
+
+function premoveText(uci) {
+    const promotion = uci[4] ? '=' + uci[4].toUpperCase() : '';
+    return `${uci.slice(0, 2)}–${uci.slice(2, 4)}${promotion}`;
 }
 
 function renderMoves() {
@@ -56,27 +62,32 @@ function moveButton(move, moveCount) {
 
 function renderEval() {
     const fill = byId('eval-fill');
-    const reviewed = reviewedMove();
-    const text = !isLive() && reviewed?.review ? reviewed.review.evalAfter : state.game.evalText;
+    const text = isLive() ? state.game.evalText : state.game.moves[state.viewPly].review.evalAfter;
     fill.parentElement.classList.toggle('flipped', !state.game.playerWhite);
     byId('eval-text').textContent = text ? text.replace(/^\+/, '') : '';
     if (text) fill.style.height = whiteSharePercent(text) + '%';
 }
 
 function renderVerdict() {
+    const moves = visibleReviews();
     const box = byId('verdict');
-    const move = reviewedMove();
-    box.hidden = !move?.review;
-    if (box.hidden) return;
+    box.hidden = moves.length === 0;
+    box.replaceChildren(...moves.map(verdictRow));
+}
+
+function verdictRow(move) {
     const { review } = move;
-    box.className = 'verdict ' + review.quality;
-    box.replaceChildren(
+    const row = element('div', 'verdict ' + review.quality);
+    row.append(
+        element('span', 'verdict-who', move.byPlayer ? 'Вы' : 'Бот'),
         element('b', '', review.label),
         ` — ${move.san}. `,
-        review.bestSan === move.san
+        review.bestSan === move.san || review.quality === 'BEST'
             ? `Оценка позиции: ${review.evalAfter}.`
-            : `Движок советовал ${review.bestSan} (${review.evalBefore}), после вашего хода ${review.evalAfter}.`,
+            : `Движок советовал ${review.bestSan} (${review.evalBefore}), `
+                + `после ${move.byPlayer ? 'вашего хода' : 'хода бота'} ${review.evalAfter}.`,
     );
+    return row;
 }
 
 function renderControls() {
@@ -89,5 +100,6 @@ function renderControls() {
     goal.hidden = !game.lessonGoal;
     goal.textContent = game.lessonGoal ? `${game.lessonTitle}: ${game.lessonGoal}` : '';
     const focus = reviewedMove();
+    byId('sound').textContent = isMuted() ? 'Звук: выкл' : 'Звук: вкл';
     byId('focus-label').textContent = focus ? `· разбираем ${focus.san}` : '';
 }

@@ -23,6 +23,33 @@ export function parseFen(fen) {
     return squares;
 }
 
+/** Делает ход на копии расстановки для показа на экране. Если фигуры на исходной клетке уже нет, ничего не меняет. */
+export function applyMove(pieces, uci) {
+    const from = uci.slice(0, 2);
+    const to = uci.slice(2, 4);
+    const piece = pieces[from];
+    if (!piece) return pieces;
+    const next = { ...pieces };
+    delete next[from];
+    const promotion = uci[4];
+    next[to] = promotion ? (isWhite(piece) ? promotion.toUpperCase() : promotion) : piece;
+    const castlingStep = FILES.indexOf(to[0]) - FILES.indexOf(from[0]);
+    if (piece.toLowerCase() === 'k' && Math.abs(castlingStep) === 2) {
+        const rookFrom = (castlingStep > 0 ? 'h' : 'a') + from[1];
+        const rookTo = (castlingStep > 0 ? 'f' : 'd') + from[1];
+        if (next[rookFrom]) {
+            next[rookTo] = next[rookFrom];
+            delete next[rookFrom];
+        }
+    }
+    return next;
+}
+
+/** Встаёт ли пешка этим ходом на последнюю горизонталь. */
+export function isPromotion(piece, to) {
+    return piece.toLowerCase() === 'p' && to[1] === (isWhite(piece) ? '8' : '1');
+}
+
 /**
  * Куда фигура ходит геометрически. Позиция к моменту предварительного хода ещё неизвестна, поэтому
  * преграды не учитываются, а легальность проверяется уже после ответа бота.

@@ -1,6 +1,6 @@
 import { FILES, materialBalance, parseFen, premoveTargets } from './chess.js';
 import { byId, element, pieceElement } from './dom.js';
-import { displayedPieces, isLive, reviewedMove, shownMove, state } from './state.js';
+import { confirmedPieces, displayedPieces, isLive, shownMove, state, visibleReviews } from './state.js';
 
 const BADGES = { FORCED: '□', BEST: '★', EXCELLENT: '!', GOOD: '✓', INACCURACY: '?!', MISTAKE: '?', BLUNDER: '??' };
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -17,7 +17,8 @@ export function renderBoard() {
     }
     board.replaceChildren(...squares);
     if (isLive() && state.hintUci && state.hintArrow) board.append(arrowElement(state.hintUci));
-    renderMaterial(pieces);
+    // Запланированные взятия ещё не случились, поэтому в счёт материала не входят.
+    renderMaterial(confirmedPieces());
 }
 
 function currentTargets(pieces) {
@@ -55,17 +56,17 @@ function addHighlights(square, name, piece, targets) {
     if (!isLive()) return;
     if (state.selected === name) classList.add('selected');
     if (state.hintUci && state.hintUci.slice(0, 2) === name) classList.add('best');
-    if (state.premove && squaresOf(state.premove).includes(name)) classList.add('premove');
+    if (state.premoves.some((premove) => squaresOf(premove).includes(name))) classList.add('premove');
     if (targets.includes(name)) {
         classList.add('target');
         if (piece) classList.add('occupied');
     }
 }
 
-/** Значок качества стоит на последнем ходе игрока: так оценка видна и после ответа бота. */
+/** Значки стоят и на вашем ходе, и на ответе бота. Если бот взял на той же клетке, виден значок его хода. */
 function qualityBadge(name) {
-    const move = reviewedMove();
-    if (!move || !move.review || move.uci.slice(2, 4) !== name) return null;
+    const move = visibleReviews().findLast((candidate) => candidate.uci.slice(2, 4) === name);
+    if (!move) return null;
     const badge = element('span', 'badge ' + move.review.quality, BADGES[move.review.quality]);
     badge.title = move.review.label;
     return badge;

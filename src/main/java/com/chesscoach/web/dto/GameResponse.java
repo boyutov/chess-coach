@@ -10,7 +10,9 @@ import com.chesscoach.game.MoveRecord;
 import com.chesscoach.game.MoveReview;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /** Состояние партии для браузера. */
 public record GameResponse(
@@ -23,6 +25,7 @@ public record GameResponse(
         String status,
         String statusText,
         List<String> legalMoves,
+        Map<String, String> legalMoveSans,
         List<MoveResponse> moves,
         String evalText,
         String lessonTitle,
@@ -51,10 +54,20 @@ public record GameResponse(
                     game.isPlayerTurn(), game.level().name(), status.name(),
                     statusText(status, board, game.playerWhite()),
                     canMove ? board.legalMoves().stream().map(Move::toUci).toList() : List.of(),
+                    canMove ? legalMoveSans(board) : Map.of(),
                     moves(game.moves()), evalText(game.analysis(), board),
                     game.lesson() == null ? null : game.lesson().title(),
                     game.lesson() == null ? null : game.lesson().goal());
         }
+    }
+
+    /** Запись ходов нужна браузеру заранее: по ней он сразу выбирает звук своего хода — шах, мат или обычный. */
+    private static Map<String, String> legalMoveSans(Board board) {
+        Map<String, String> sans = new LinkedHashMap<>();
+        for (Move move : board.legalMoves()) {
+            sans.put(move.toUci(), board.toSan(move));
+        }
+        return sans;
     }
 
     private static List<MoveResponse> moves(List<MoveRecord> records) {

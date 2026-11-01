@@ -40,6 +40,7 @@ class GameServiceTest {
         assertEquals(2, moves.size());
         assertNotNull(moves.get(0).review());
         assertFalse(moves.get(1).byPlayer());
+        assertNotNull(moves.get(1).review());
         assertTrue(game.isPlayerTurn());
     }
 

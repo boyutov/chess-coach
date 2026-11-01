@@ -7,7 +7,7 @@ import com.chesscoach.engine.Engine.ScoredMove;
 import java.util.List;
 
 /**
- * Разбор хода игрока.
+ * Разбор хода игрока или бота.
  *
  * @param evalBefore оценка лучшего хода в сантипешках с точки зрения белых
  * @param evalAfter  оценка сыгранного хода в сантипешках с точки зрения белых

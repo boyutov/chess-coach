@@ -9,8 +9,10 @@ import com.chesscoach.engine.Level;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
-/** Ход партии: ход игрока, его разбор и ответ бота. */
+/** Ход партии: ход игрока, ответ бота и разбор обоих ходов. */
 @Service
 public class GameService {
 
@@ -89,12 +91,24 @@ public class GameService {
     /** Отвечает за бота, если сейчас его очередь, и заранее оценивает ходы для игрока. */
     private void advance(Game game) {
         if (game.status() == GameStatus.ACTIVE && !game.isPlayerTurn()) {
-            Board board = game.board();
-            game.addMove(MoveRecord.byBot(board, engine.chooseMove(board, game.level(), game.seenPositions())));
+            playBotMove(game);
         }
         if (game.status() == GameStatus.ACTIVE) {
             List<ScoredMove> ranking = engine.rank(game.board(), analysis.depth(), analysis.timeLimitMs(), game.seenPositions());
             game.setAnalysis(ranking);
         }
+    }
+
+    /**
+     * Ход бота разбирается той же глубиной, что и ход игрока, а не глубиной его уровня: иначе слабый бот
+     * сам бы не замечал своих ошибок. Разбор идёт параллельно с выбором хода, чтобы бот не отвечал дольше.
+     */
+    private void playBotMove(Game game) {
+        Board board = game.board();
+        Set<String> seen = game.seenPositions();
+        CompletableFuture<List<ScoredMove>> ranking = CompletableFuture.supplyAsync(
+                () -> engine.rank(board, analysis.depth(), analysis.timeLimitMs(), seen));
+        Move move = engine.chooseMove(board, game.level(), seen);
+        game.addMove(MoveRecord.byBot(board, move, ranking.join()));
     }
 }

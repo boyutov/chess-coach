@@ -1,7 +1,7 @@
 import { fetchLessons } from './api.js';
 import { addMessage, askCoach } from './chat.js';
 import { byId, element } from './dom.js';
-import { cancelPremove, newGame, onSquareClick, showHint, undo, viewMove } from './game-actions.js';
+import { cancelPremove, newGame, onSquareClick, showHint, toggleSound, undo, viewMove } from './game-actions.js';
 
 const startFromForm = () => newGame({
     playAsWhite: byId('color').value === 'w',
@@ -25,6 +25,7 @@ function bindBoard() {
     });
     byId('undo').addEventListener('click', undo);
     byId('hint').addEventListener('click', showHint);
+    byId('sound').addEventListener('click', toggleSound);
 }
 
 function bindGameForm() {
