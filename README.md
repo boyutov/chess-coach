@@ -1,87 +1,102 @@
 # Chess Coach
 
-Шахматы с тренером: партия с ботом в браузере. После каждого хода приложение показывает его качество,
-как на chess.com, а в чате можно спросить ИИ-тренера, почему ход плох и что было лучше.
+Play chess against a bot in your browser and learn from every move. The app rates each of your moves, much like
+chess.com does, and a chat coach explains why a move was weak and what would have been better.
 
-## Возможности
+The interface and the coach's default language are Russian. The coach replies in the language you write in.
 
-- Партия с ботом: четыре уровня сложности, игра белыми или чёрными.
-- Оценка каждого хода: от «лучший ход» до «зевок», шкала преимущества и счёт материала.
-- Чат с тренером: объясняет ходы на основе расчётов движка, понимает запись «почему не Кf3?».
-- Подсказка в два шага (фигура, затем стрелка), предварительные ходы и мгновенная отмена хода.
-- Учебные позиции: вилка, линейный мат, мат ферзём, пешечный эндшпиль и другие.
+## Features
 
-## Запуск
+- **Play the bot:** four difficulty levels, as White or Black.
+- **Move review:** every move is rated from "best move" to "blunder", with an evaluation bar and a material count.
+- **Chat coach:** explains moves using the engine's calculations and recognizes moves in your question,
+  including Russian notation such as "почему не Кf3?". Click an earlier move to ask about it.
+- **Two-step hints:** the first click highlights the piece, the second draws an arrow.
+- **Premoves:** queue a move while the bot is thinking. Right-click the board to cancel it.
+- **Instant undo:** takes back your last move and the bot's reply.
+- **Lessons:** back-rank mate, knight fork, ladder mate, queen mate, king and pawn endgame, and opening principles.
 
-Нужна Java 17+.
+## Getting started
+
+You need Java 17 or later.
 
 ```bash
-export OPENAI_API_KEY=ваш_ключ   # нужен только для чата
+export OPENAI_API_KEY=your_key   # only needed for the chat
 ./mvnw spring-boot:run
 ```
 
-Откройте http://localhost:8080. Ключ создаётся на https://platform.openai.com/api-keys, запросы к ИИ платные
-и оплачиваются отдельно от подписки ChatGPT. Без ключа работает всё, кроме чата.
+Then open http://localhost:8080.
 
-Тесты: `./mvnw test`.
+Create a key at https://platform.openai.com/api-keys. API usage is paid and billed separately from a ChatGPT
+subscription. Without a key, everything except the chat works.
 
-## Архитектура
+Run the tests with `./mvnw test`.
 
-Зависимости направлены внутрь: веб знает о логике, логика не знает о вебе, а правила и движок
-не зависят ни от чего, включая Spring.
+## Architecture
+
+Dependencies point inward: the web layer knows about the application logic, the logic knows nothing about the web,
+and the rules and engine depend on nothing else, not even Spring.
 
 ```
 web ──> coach ──> game ──> engine ──> chess
  └───────────────^
 ```
 
-| Пакет | Отвечает за |
+| Package | Responsibility |
 |---|---|
-| `chess` | Правила: позиция, генерация ходов, FEN, SAN. Неизменяемая `Board` проверена perft-тестами |
-| `engine` | Альфа-бета перебор, оценка позиции, уровни сложности |
-| `game` | Партия, разбор ходов (`MoveReview`, `MoveQuality`), `GameService`, хранилище за интерфейсом `GameRepository` |
-| `coach` | Факты для модели (`CoachPromptBuilder`), история переписки, выбор провайдера |
-| `coach.provider` | Реализации `CoachModel`: OpenAI и Anthropic. Новый провайдер — ещё один класс |
-| `web` | REST-контроллеры, потоковый ответ чата (SSE), DTO, перевод ошибок в HTTP |
-| `config` | Типизированные настройки и регистрация движка |
+| `chess` | Rules: positions, move generation, FEN, SAN. The immutable `Board` is verified with perft tests |
+| `engine` | Alpha-beta search, position evaluation, difficulty levels |
+| `game` | Game state, move review (`MoveReview`, `MoveQuality`), `GameService`, storage behind `GameRepository` |
+| `coach` | Facts for the model (`CoachPromptBuilder`), conversation history, provider selection |
+| `coach.provider` | `CoachModel` implementations for OpenAI and Anthropic |
+| `web` | REST controllers, streaming chat responses (SSE), DTOs, mapping errors to HTTP responses |
+| `config` | Typed configuration and engine registration |
 
-Фронтенд — ES-модули без сборки в `src/main/resources/static/js`: `state` (состояние), `chess` (расчёты),
-`api` (запросы), `board-view` и `panels-view` (отрисовка), `game-actions` и `chat` (действия), `main` (связка).
+The frontend uses plain ES modules with no build step, in `src/main/resources/static/js`:
 
-### Как оценивается ход
-
-Движок заранее оценивает все ходы позиции, затем считается, сколько процентов шанса на победу потерял
-ход игрока по сравнению с лучшим:
-
-| Потеря | Оценка |
+| Module | Responsibility |
 |---|---|
-| 0% | Лучший ход |
-| до 2% | Отличный ход |
-| до 10% | Хороший ход |
-| до 20% | Неточность |
-| до 30% | Ошибка |
-| от 30% | Зевок |
+| `state` | UI state |
+| `chess` | Board calculations for display |
+| `api` | Server requests |
+| `board-view`, `panels-view` | Rendering |
+| `game-actions`, `chat` | User actions |
+| `main` | Wiring |
 
-Эти оценки хранятся вместе с ходом, поэтому отмена хода не требует нового анализа.
+### How moves are rated
 
-### Как отвечает тренер
+The engine scores every legal move in the position. A move is rated by how much winning chance it loses compared
+with the best move:
 
-К каждому вопросу приложение добавляет позицию, вердикт, оценки всех ходов и варианты движка. Модель
-объясняет готовые расчёты и не считает ходы сама.
-
-## Настройки
-
-`src/main/resources/application.properties`:
-
-| Параметр | Значение |
+| Winning chance lost | Rating |
 |---|---|
-| `coach.provider` | `auto`, `openai` или `anthropic`. В режиме `auto` выбор зависит от заданного ключа |
-| `coach.openai.model` | Модель OpenAI. Другой адрес API задаётся в `OPENAI_BASE_URL` |
-| `coach.anthropic.model` | Модель Anthropic, ключ в `ANTHROPIC_API_KEY` |
-| `analysis.depth`, `analysis.time-limit-ms` | Глубина и время анализа ходов |
+| 0% | Best move |
+| under 2% | Excellent |
+| under 10% | Good |
+| under 20% | Inaccuracy |
+| under 30% | Mistake |
+| 30% or more | Blunder |
 
-## Ограничения
+A position with only one legal move is rated "forced". Scores are stored with each move, so undo needs no new analysis.
 
-- Партии и переписка хранятся в памяти и пропадают при перезапуске.
-- Приложение слушает только `127.0.0.1`: авторизации нет, а чат расходует ваш ключ.
-- Движок учебный и уступает Stockfish, поэтому оценки приблизительные, особенно в сложных позициях.
+### How the coach answers
+
+Each question is sent with the position, the rating, the scores of all moves, and likely continuations from the
+engine. The model explains these calculations instead of working out variations itself.
+
+## Configuration
+
+Settings are in `src/main/resources/application.properties`:
+
+| Setting | Description |
+|---|---|
+| `coach.provider` | `auto`, `openai`, or `anthropic`. `auto` uses OpenAI if its key is set, otherwise Anthropic |
+| `coach.openai.model` | OpenAI model, `gpt-4o-mini` by default. Set `OPENAI_BASE_URL` to use a different API address |
+| `coach.anthropic.model` | Anthropic model. The key goes in `ANTHROPIC_API_KEY` |
+| `analysis.depth`, `analysis.time-limit-ms` | Depth and time limit for move analysis |
+
+## Limitations
+
+- Games and chats are kept in memory and are lost on restart.
+- The app listens only on `127.0.0.1`, because it has no login and the chat spends your API credit.
+- The built-in engine is much weaker than Stockfish, so ratings are approximate, especially in complex positions.
