@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Шахматы с тренером</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+    <h1>Шахматы с тренером</h1>
+    <form id="new-game" class="controls">
+        <label>Режим
+            <select id="lesson">
+                <option value="">Партия с ботом</option>
+            </select>
+        </label>
+        <label>Цвет
+            <select id="color">
+                <option value="w">Белые</option>
+                <option value="b">Чёрные</option>
+            </select>
+        </label>
+        <label>Бот
+            <select id="level">
+                <option value="BEGINNER">Новичок</option>
+                <option value="AMATEUR" selected>Любитель</option>
+                <option value="INTERMEDIATE">Средний</option>
+                <option value="STRONG">Сильный</option>
+            </select>
+        </label>
+        <button type="submit" class="primary">Новая партия</button>
+    </form>
+</header>
+
+<main class="layout">
+    <section class="board-column">
+        <div id="lesson-goal" class="lesson-goal" hidden></div>
+        <div id="material-top" class="material"></div>
+        <div class="board-wrap">
+            <div class="eval-bar" title="Оценка позиции">
+                <div id="eval-fill" class="eval-fill"></div>
+                <span id="eval-text" class="eval-text"></span>
+            </div>
+            <div class="board-frame">
+                <div id="board" class="board" role="grid" aria-label="Шахматная доска"></div>
+            </div>
+        </div>
+        <div id="material-bottom" class="material"></div>
+        <div class="status-row">
+            <span id="status" class="status" role="status"></span>
+            <div class="actions">
+                <button id="hint" type="button">Подсказка</button>
+                <button id="undo" type="button">Отменить ход</button>
+            </div>
+        </div>
+        <div id="verdict" class="verdict" hidden></div>
+    </section>
+
+    <section class="side-column">
+        <div class="panel moves-panel">
+            <h2>Ходы</h2>
+            <ol id="moves" class="moves"></ol>
+        </div>
+        <div class="panel chat-panel">
+            <h2>Тренер <small id="focus-label"></small></h2>
+            <div id="chat" class="chat" aria-live="polite">
+                <p class="msg coach">Сделайте ход, и я помогу его разобрать. Спрашивайте о чём угодно: например, «почему не Nf3?»</p>
+            </div>
+            <div class="quick">
+                <button type="button" data-q="Почему этот ход получил такую оценку? Объясни подробно.">Почему такая оценка?</button>
+                <button type="button" data-q="Чем ход, который советует движок, лучше моего? Покажи варианты.">Чем лучше ход движка?</button>
+                <button type="button" data-q="Какой сейчас план? Дай намёк, но не называй ход.">Какой план?</button>
+            </div>
+            <form id="chat-form" class="chat-form">
+                <textarea id="chat-input" rows="2" maxlength="4000" placeholder="Почему так, а не так?" aria-label="Вопрос тренеру"></textarea>
+                <button id="chat-send" type="submit" class="primary">Спросить</button>
+            </form>
+        </div>
+    </section>
+</main>
+
+<div id="promotion" class="promotion" hidden>
+    <div class="promotion-box" role="dialog" aria-label="Выберите фигуру">
+        <button type="button" data-p="q"></button>
+        <button type="button" data-p="r"></button>
+        <button type="button" data-p="b"></button>
+        <button type="button" data-p="n"></button>
+    </div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
