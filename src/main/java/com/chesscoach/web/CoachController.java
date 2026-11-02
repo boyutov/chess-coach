@@ -4,12 +4,18 @@ import com.chesscoach.coach.CoachModelException;
 import com.chesscoach.coach.CoachService;
 import com.chesscoach.game.Game;
 import com.chesscoach.game.GameService;
+import com.chesscoach.online.AccountService;
+import com.chesscoach.online.NotAuthenticatedException;
 import com.chesscoach.web.dto.ChatRequest;
 import jakarta.annotation.PreDestroy;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.web.util.WebUtils;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,6 +24,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,17 +42,47 @@ public class CoachController {
     private final CoachService coach;
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
-    public CoachController(GameService games, CoachService coach) {
+    private final AccountService accounts;
+    private final ChatLimiter limiter;
+    private final boolean localOnly;
+
+    public CoachController(GameService games, CoachService coach, AccountService accounts, ChatLimiter limiter,
+                           @Value("${coach.local-only}") boolean localOnly) {
+        this.accounts = accounts;
+        this.limiter = limiter;
+        this.localOnly = localOnly;
         this.games = games;
         this.coach = coach;
     }
 
     @PostMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter chat(@PathVariable String id, @Valid @RequestBody ChatRequest request) {
+    public SseEmitter chat(@PathVariable String id, @Valid @RequestBody ChatRequest request,
+                           HttpServletRequest http) {
+        if (localOnly) requireLocal(http.getRemoteAddr());
         Game game = games.get(id);
+        limiter.acquire(limiterKey(http));
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
         executor.execute(() -> streamAnswer(game, request, emitter));
         return emitter;
+    }
+
+    /** Чат тратит деньги с API-ключа владельца, поэтому гостям из сети он недоступен. */
+    private static void requireLocal(String address) {
+        try {
+            if (InetAddress.getByName(address).isLoopbackAddress()) return;
+        } catch (UnknownHostException e) {
+            log.debug("Не удалось разобрать адрес клиента {}", address);
+        }
+        throw new LocalOnlyException();
+    }
+
+    private String limiterKey(HttpServletRequest http) {
+        Cookie cookie = WebUtils.getCookie(http, OnlineController.COOKIE);
+        try {
+            return accounts.requirePlayer(cookie == null ? null : cookie.getValue());
+        } catch (NotAuthenticatedException e) {
+            return "";
+        }
     }
 
     private void streamAnswer(Game game, ChatRequest request, SseEmitter emitter) {

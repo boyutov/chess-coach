@@ -33,7 +33,7 @@ class GameServiceTest {
 
     @Test
     void reviewsPlayerMoveAndBotReplies() {
-        Game game = service.startGame(true, Level.BEGINNER);
+        Game game = service.startGame(true, Level.BEGINNER, null);
         service.playMove(game.id(), "e2e4");
 
         List<MoveRecord> moves = game.moves();
@@ -46,7 +46,7 @@ class GameServiceTest {
 
     @Test
     void botMovesFirstWhenPlayerIsBlack() {
-        Game game = service.startGame(false, Level.BEGINNER);
+        Game game = service.startGame(false, Level.BEGINNER, null);
         assertEquals(1, game.moves().size());
         assertTrue(game.isPlayerTurn());
     }
@@ -61,7 +61,7 @@ class GameServiceTest {
 
     @Test
     void rejectsIllegalMove() {
-        Game game = service.startGame(true, Level.BEGINNER);
+        Game game = service.startGame(true, Level.BEGINNER, null);
         assertThrows(IllegalMoveException.class, () -> service.playMove(game.id(), "e2e5"));
     }
 
@@ -79,7 +79,7 @@ class GameServiceTest {
 
     @Test
     void undoRestoresPositionWithoutNewAnalysis() {
-        Game game = service.startGame(true, Level.BEGINNER);
+        Game game = service.startGame(true, Level.BEGINNER, null);
         String start = game.board().toFen();
         List<ScoredMove> analysisBefore = game.analysis();
         service.playMove(game.id(), "d2d4");
@@ -95,13 +95,13 @@ class GameServiceTest {
 
     @Test
     void undoWithoutMovesIsRejected() {
-        Game game = service.startGame(true, Level.BEGINNER);
+        Game game = service.startGame(true, Level.BEGINNER, null);
         assertThrows(GameStateException.class, () -> service.undo(game.id()));
     }
 
     @Test
     void hintIsLegalMove() {
-        Game game = service.startGame(true, Level.BEGINNER);
+        Game game = service.startGame(true, Level.BEGINNER, null);
         assertTrue(game.board().legalMoves().contains(service.hint(game.id())));
     }
 

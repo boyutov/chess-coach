@@ -1,7 +1,12 @@
 import { fetchLessons } from './api.js';
 import { addMessage, askCoach } from './chat.js';
 import { byId, element } from './dom.js';
-import { cancelPremove, newGame, onSquareClick, showHint, toggleSound, undo, viewMove } from './game-actions.js';
+import { initArchive, openCurrentReport } from './archive.js';
+import { cancelPremove, newGame, onSquareClick, resign, showHint, stepMove, toggleSound, undo, viewMove } from './game-actions.js';
+import { initOnline } from './online.js';
+import { render } from './panels-view.js';
+import { previewGame, state } from './state.js';
+import { initTabs } from './tabs.js';
 
 const startFromForm = () => newGame({
     playAsWhite: byId('color').value === 'w',
@@ -25,6 +30,17 @@ function bindBoard() {
     });
     byId('undo').addEventListener('click', undo);
     byId('hint').addEventListener('click', showHint);
+    byId('resign').addEventListener('click', resign);
+    byId('open-report').addEventListener('click', openCurrentReport);
+    byId('nav-start').addEventListener('click', () => viewMove(-1));
+    byId('nav-prev').addEventListener('click', () => stepMove(-1));
+    byId('nav-next').addEventListener('click', () => stepMove(1));
+    byId('nav-end').addEventListener('click', () => viewMove(state.game.moves.length - 1));
+    document.addEventListener('keydown', (event) => {
+        if (!state.game?.archived || event.target.matches('input, textarea, select')) return;
+        if (event.key === 'ArrowLeft') stepMove(-1);
+        if (event.key === 'ArrowRight') stepMove(1);
+    });
     byId('sound').addEventListener('click', toggleSound);
 }
 
@@ -74,5 +90,16 @@ async function loadLessons() {
 bindBoard();
 bindGameForm();
 bindChat();
-await loadLessons();
-startFromForm();
+initTabs();
+initArchive();
+// Сначала онлайн: незаконченная партия с человеком важнее новой партии с ботом, а вкладки работают сразу.
+await Promise.all([loadLessons(), initOnline(startFromForm)]);
+if (!state.game) await startFromForm();
+// На закрытом сервере партия с ботом требует входа: сразу показываем форму.
+if (!state.game) showPreview();
+
+function showPreview() {
+    state.game = previewGame();
+    render();
+    byId('tab-online').click();
+}

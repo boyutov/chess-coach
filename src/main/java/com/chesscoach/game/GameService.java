@@ -26,8 +26,10 @@ public class GameService {
         this.analysis = analysis;
     }
 
-    public Game startGame(boolean playerWhite, Level level) {
-        return start(new Game(Board.start(), playerWhite, level, null));
+    public Game startGame(boolean playerWhite, Level level, String owner) {
+        Game game = new Game(Board.start(), playerWhite, level, null);
+        game.setOwner(owner);
+        return start(game);
     }
 
     public Game startLesson(Lesson lesson) {
@@ -56,6 +58,7 @@ public class GameService {
 
     public Game undo(String id) {
         Game game = get(id);
+        requireWritable(game);
         if (!game.undoLastPlayerMove()) {
             throw new GameStateException("Отменять пока нечего");
         }
@@ -79,7 +82,12 @@ public class GameService {
         return game;
     }
 
+    private static void requireWritable(Game game) {
+        if (game.readOnly()) throw new GameStateException("Это сохранённая партия, её можно только смотреть");
+    }
+
     private static void requirePlayerTurn(Game game) {
+        requireWritable(game);
         if (game.status() != GameStatus.ACTIVE) {
             throw new GameStateException("Партия уже закончена");
         }

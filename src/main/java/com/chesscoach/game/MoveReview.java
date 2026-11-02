@@ -34,7 +34,7 @@ public record MoveReview(MoveQuality quality, String bestSan, String bestUci, do
     }
 
     /** Переводит оценку в сантипешках в шанс на победу, %. Формула как на lichess. */
-    static double winPercent(int centipawns) {
+    public static double winPercent(int centipawns) {
         int clamped = Math.max(-WIN_PERCENT_CP_LIMIT, Math.min(WIN_PERCENT_CP_LIMIT, centipawns));
         return 50 + 50 * (2 / (1 + Math.exp(-WIN_PERCENT_SLOPE * clamped)) - 1);
     }

@@ -12,6 +12,18 @@ export function addMessage(kind, text) {
 
 export async function askCoach(question) {
     if (state.chatting || !state.game || !question.trim()) return;
+    if (state.game.preview) {
+        addMessage('error', 'Войдите в аккаунт на вкладке «Онлайн», чтобы спросить тренера');
+        return;
+    }
+    if (state.game.archived && state.game.analysis !== 'DONE') {
+        addMessage('error', 'Сначала разберите партию на вкладке «Партии»: тренеру нужны расчёты движка');
+        return;
+    }
+    if (state.game.online) {
+        addMessage('error', 'В партии с человеком тренер выключен, чтобы игра была честной');
+        return;
+    }
     state.chatting = true;
     setChatDisabled(true);
     addMessage('user', question);

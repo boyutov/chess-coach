@@ -15,6 +15,7 @@ The interface and the coach's default language are Russian. The coach replies in
 - **Two-step hints:** the first click highlights the piece, the second draws an arrow.
 - **Premoves:** queue several moves while the bot is thinking, choosing the piece for a promotion. Right-click the board to cancel the queue.
 - **Instant undo:** takes back your last move and the bot's reply.
+- **Online play:** accounts, friends by nickname, challenges, and "find an opponent" matchmaking. Moves arrive live, premoves work, and you can resign. Engine review, hints, undo and the coach are off in these games.
 - **Lessons:** back-rank mate, knight fork, ladder mate, queen mate, king and pawn endgame, and opening principles.
 
 ## Getting started
@@ -33,6 +34,38 @@ subscription. Without a key, everything except the chat works.
 
 Run the tests with `./mvnw test`.
 
+## Playing over the network
+
+By default the server only accepts connections from this computer. To let others join:
+
+```bash
+SERVER_ADDRESS=0.0.0.0 ./mvnw spring-boot:run
+```
+
+Other players open `http://<your-ip>:8080` and create an account on the "Онлайн" tab. Port 8080 must be open in your
+firewall. Players outside your network need a VPN or a public address. To test two accounts on one computer, use a
+private window for the second one, because a browser profile holds one session.
+
+Guests can play the bot and each other, but the coach chat answers only requests from the server's own computer. Do
+not put the app behind a tunnel or reverse proxy without the public server settings below: proxied requests look
+local, so the chat would spend your API credit for anyone. Traffic is plain HTTP, so use a password you don't use anywhere else.
+
+Accounts, friends, sessions and games between people are saved in a local H2 file under `~/.chess-coach/`.
+
+### Public server
+
+For a server on the internet, run the app behind an HTTPS proxy with PostgreSQL and these variables:
+
+| Variable | Value |
+|---|---|
+| `SPRING_DATASOURCE_URL`, `_USERNAME`, `_PASSWORD` | PostgreSQL connection |
+| `ONLINE_INVITE_CODE` | Required to create an account |
+| `ONLINE_REQUIRE_LOGIN=true` | Bot games and chat need a login |
+| `ONLINE_SECURE_COOKIE=true` | Session cookie over HTTPS only |
+| `COACH_LOCAL_ONLY=false` | Lets signed-in players use the chat |
+
+Chat is limited per player by `coach.max-questions-per-hour`. Five wrong passwords lock a nickname for 15 minutes.
+
 ## Architecture
 
 Dependencies point inward: the web layer knows about the application logic, the logic knows nothing about the web,
@@ -50,6 +83,7 @@ web ──> coach ──> game ──> engine ──> chess
 | `game` | Game state, move review (`MoveReview`, `MoveQuality`), `GameService`, storage behind `GameRepository` |
 | `coach` | Facts for the model (`CoachPromptBuilder`), conversation history, provider selection |
 | `coach.provider` | `CoachModel` implementations for OpenAI and Anthropic |
+| `online` | Accounts, friends, challenges, matchmaking and live updates for games between people |
 | `web` | REST controllers, streaming chat responses (SSE), DTOs, mapping errors to HTTP responses |
 | `config` | Typed configuration and engine registration |
 
@@ -62,6 +96,7 @@ The frontend uses plain ES modules with no build step, in `src/main/resources/st
 | `api` | Server requests |
 | `board-view`, `panels-view` | Rendering |
 | `game-actions`, `chat` | User actions |
+| `online` | Online tab: login, friends, matchmaking, live updates |
 | `main` | Wiring |
 
 ### How moves are rated
@@ -98,6 +133,6 @@ Settings are in `src/main/resources/application.properties`:
 
 ## Limitations
 
-- Games and chats are kept in memory and are lost on restart.
-- The app listens only on `127.0.0.1`, because it has no login and the chat spends your API credit.
+- Bot games and chats are kept in memory and are lost on restart.
+- Online games have no clocks and no draw offers, and a player who leaves does not lose automatically.
 - The built-in engine is much weaker than Stockfish, so ratings are approximate, especially in complex positions.

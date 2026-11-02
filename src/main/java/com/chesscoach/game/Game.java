@@ -21,7 +21,7 @@ public class Game {
     private static final int REPETITION_DRAW_COUNT = 3;
     private static final int FIFTY_MOVE_DRAW_HALFMOVES = 100;
 
-    private final String id = UUID.randomUUID().toString();
+    private final String id;
     private final Board initial;
     private final boolean playerWhite;
     private final Level level;
@@ -29,8 +29,18 @@ public class Game {
     private final List<MoveRecord> moves = new ArrayList<>();
     /** Оценки всех ходов текущей позиции. Заполнены, только когда очередь игрока. */
     private List<ScoredMove> analysis = List.of();
+    /** Ключ игрока, если он вошёл в аккаунт: только такие партии сохраняются. */
+    private volatile String owner;
+    /** Копия из архива: её можно смотреть и обсуждать с тренером, но не продолжать. */
+    private volatile boolean readOnly;
 
     public Game(Board initial, boolean playerWhite, Level level, Lesson lesson) {
+        this(UUID.randomUUID().toString(), initial, playerWhite, level, lesson);
+    }
+
+    /** Партия с известным номером: нужна, чтобы восстановить её из базы. */
+    public Game(String id, Board initial, boolean playerWhite, Level level, Lesson lesson) {
+        this.id = id;
         this.initial = initial;
         this.playerWhite = playerWhite;
         this.level = level;
@@ -47,6 +57,22 @@ public class Game {
 
     public Level level() {
         return level;
+    }
+
+    public String owner() {
+        return owner;
+    }
+
+    public void setOwner(String owner) {
+        this.owner = owner;
+    }
+
+    public boolean readOnly() {
+        return readOnly;
+    }
+
+    public void markReadOnly() {
+        readOnly = true;
     }
 
     public Lesson lesson() {

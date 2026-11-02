@@ -78,7 +78,8 @@ public class CoachPromptBuilder {
     private static void appendGameSummary(StringBuilder facts, Game game) {
         Board board = game.board();
         facts.append("Ученик играет ").append(game.playerWhite() ? "белыми" : "чёрными")
-                .append(". Уровень бота: ").append(game.level()).append(".\n");
+                .append(game.level() == null ? ". Соперник — человек, а не бот.\n"
+                        : ". Уровень бота: " + game.level() + ".\n");
         if (game.lesson() != null) {
             facts.append("Урок: ").append(game.lesson().title())
                     .append(". Задача: ").append(game.lesson().goal()).append('\n');

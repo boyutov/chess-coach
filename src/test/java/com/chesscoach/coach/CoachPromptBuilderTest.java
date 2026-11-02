@@ -23,7 +23,7 @@ class CoachPromptBuilderTest {
 
     @Test
     void includesVerdictAndMoveAskedAbout() {
-        Game game = games.startGame(true, Level.BEGINNER);
+        Game game = games.startGame(true, Level.BEGINNER, null);
         games.playMove(game.id(), "a2a3");
 
         String prompt = builder.build(game, 0, "Почему не Кf3?");
@@ -36,7 +36,7 @@ class CoachPromptBuilderTest {
 
     @Test
     void reviewsBotMoveWhenAskedAboutIt() {
-        Game game = games.startGame(true, Level.BEGINNER);
+        Game game = games.startGame(true, Level.BEGINNER, null);
         games.playMove(game.id(), "a2a3");
         String prompt = builder.build(game, 1, "?");
         assertTrue(prompt.contains("Разбираемый ход бота: 1... " + game.moves().get(1).san()), prompt);
@@ -45,7 +45,7 @@ class CoachPromptBuilderTest {
 
     @Test
     void lastPlayerMoveIsReviewedWithBotReply() {
-        Game game = games.startGame(true, Level.BEGINNER);
+        Game game = games.startGame(true, Level.BEGINNER, null);
         games.playMove(game.id(), "a2a3");
         String prompt = builder.build(game, 0, "?");
         assertTrue(prompt.contains("Разбираемый ход ученика: 1. a3"), prompt);
@@ -54,7 +54,7 @@ class CoachPromptBuilderTest {
 
     @Test
     void earlierMoveIsReviewedAlone() {
-        Game game = games.startGame(true, Level.BEGINNER);
+        Game game = games.startGame(true, Level.BEGINNER, null);
         games.playMove(game.id(), "a2a3");
         games.playMove(game.id(), game.board().legalMoves().get(0).toUci());
         String prompt = builder.build(game, 0, "?");
@@ -64,7 +64,7 @@ class CoachPromptBuilderTest {
 
     @Test
     void botOpeningMoveIsReviewedBeforePlayerMoves() {
-        Game game = games.startGame(false, Level.BEGINNER);
+        Game game = games.startGame(false, Level.BEGINNER, null);
         assertTrue(builder.build(game, null, "?").contains("Разбираемый ход бота: 1. "));
     }
 

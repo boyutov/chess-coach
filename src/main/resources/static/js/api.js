@@ -9,7 +9,11 @@ async function request(path, body) {
         body: body === undefined ? undefined : JSON.stringify(body),
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'Ошибка сервера: ' + response.status);
+    if (!response.ok) {
+        const error = new Error(data.error || 'Ошибка сервера: ' + response.status);
+        error.status = response.status;
+        throw error;
+    }
     return data;
 }
 
@@ -19,6 +23,32 @@ export const sendMove = (gameId, uci) => request(`/games/${gameId}/moves`, { uci
 export const undoMove = (gameId) => request(`/games/${gameId}/undo`, {});
 export const fetchHint = (gameId) => request(`/games/${gameId}/hint`);
 
+export const archive = {
+    list: () => request('/archive'),
+    game: (id) => request(`/archive/${id}`),
+    analyze: (id) => request(`/archive/${id}/analysis`, {}),
+};
+
+const nick = encodeURIComponent;
+export const online = {
+    register: (credentials) => request('/online/register', credentials),
+    login: (credentials) => request('/online/login', credentials),
+    logout: () => request('/online/logout', {}),
+    state: () => request('/online/state'),
+    requestFriend: (nickname) => request('/online/friends', { nickname }),
+    acceptFriend: (name) => request(`/online/friends/${nick(name)}/accept`, {}),
+    declineFriend: (name) => request(`/online/friends/${nick(name)}/decline`, {}),
+    removeFriend: (name) => request(`/online/friends/${nick(name)}/remove`, {}),
+    challenge: (name) => request(`/online/challenges/${nick(name)}`, {}),
+    acceptChallenge: (name) => request(`/online/challenges/${nick(name)}/accept`, {}),
+    dropChallenge: (name) => request(`/online/challenges/${nick(name)}/drop`, {}),
+    joinQueue: () => request('/online/queue', {}),
+    leaveQueue: () => request('/online/queue/leave', {}),
+    game: (id) => request(`/online/games/${id}`),
+    move: (id, uci) => request(`/online/games/${id}/moves`, { uci }),
+    resign: (id) => request(`/online/games/${id}/resign`, {}),
+};
+
 /** Отправляет вопрос тренеру и вызывает onEvent(имя, данные) для событий потока. */
 export async function streamChat(gameId, message, focusPly, onEvent) {
     const response = await fetch(`/api/games/${gameId}/chat`, {
@@ -26,6 +56,10 @@ export async function streamChat(gameId, message, focusPly, onEvent) {
         headers: JSON_HEADERS,
         body: JSON.stringify({ message, focusPly }),
     });
+    if (response.status === 403 || response.status === 429) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Тренер сейчас недоступен');
+    }
     if (!response.ok || !response.body) throw new Error('Не удалось связаться с сервером');
     await readEvents(response.body, onEvent);
 }

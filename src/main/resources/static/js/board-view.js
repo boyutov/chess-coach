@@ -1,6 +1,6 @@
 import { FILES, materialBalance, parseFen, premoveTargets } from './chess.js';
 import { byId, element, pieceElement } from './dom.js';
-import { confirmedPieces, displayedPieces, isLive, shownMove, state, visibleReviews } from './state.js';
+import { isArchived, confirmedPieces, displayedPieces, isLive, isWaitingForOpponent, shownMove, state, visibleReviews } from './state.js';
 
 const BADGES = { FORCED: '□', BEST: '★', EXCELLENT: '!', GOOD: '✓', INACCURACY: '?!', MISTAKE: '?', BLUNDER: '??' };
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -17,14 +17,23 @@ export function renderBoard() {
     }
     board.replaceChildren(...squares);
     if (isLive() && state.hintUci && state.hintArrow) board.append(arrowElement(state.hintUci));
+    const missed = missedBestMove();
+    if (missed) board.append(arrowElement(missed));
     // Запланированные взятия ещё не случились, поэтому в счёт материала не входят.
     renderMaterial(confirmedPieces());
 }
 
+/** При просмотре партии после неточного хода стрелка показывает, что советовал движок. */
+function missedBestMove() {
+    if (!isArchived()) return null;
+    const review = shownMove()?.review;
+    return review && ['INACCURACY', 'MISTAKE', 'BLUNDER'].includes(review.quality) ? review.bestUci : null;
+}
+
 function currentTargets(pieces) {
-    const { selected, pendingUci, game } = state;
+    const { selected, game } = state;
     if (!isLive() || !selected || !pieces[selected]) return [];
-    if (pendingUci) return premoveTargets(selected, pieces);
+    if (isWaitingForOpponent()) return premoveTargets(selected, pieces);
     return game.legalMoves.filter((move) => move.startsWith(selected)).map((move) => move.slice(2, 4));
 }
 
@@ -115,7 +124,7 @@ function renderMaterial(pieces) {
     const { whiteAdvantage, whiteLost, blackLost } = materialBalance(pieces, parseFen(game.startFen));
     const playerLead = game.playerWhite ? whiteAdvantage : -whiteAdvantage;
     const [playerLost, botLost] = game.playerWhite ? [whiteLost, blackLost] : [blackLost, whiteLost];
-    fillMaterialRow(byId('material-top'), 'Бот', playerLost, -playerLead);
+    fillMaterialRow(byId('material-top'), game.opponent ?? 'Бот', playerLost, -playerLead);
     fillMaterialRow(byId('material-bottom'), 'Вы', botLost, playerLead);
 }
 

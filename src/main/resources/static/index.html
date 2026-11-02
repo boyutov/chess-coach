@@ -54,6 +54,14 @@
                 <button id="sound" type="button">Звук: вкл</button>
                 <button id="hint" type="button">Подсказка</button>
                 <button id="undo" type="button">Отменить ход</button>
+                <button id="resign" type="button" hidden>Сдаться</button>
+                <button id="open-report" type="button" class="primary" hidden>Отчёт о партии</button>
+                <span id="review-nav" class="row" hidden>
+                    <button id="nav-start" type="button" aria-label="К началу">⏮</button>
+                    <button id="nav-prev" type="button" aria-label="Назад">◀</button>
+                    <button id="nav-next" type="button" aria-label="Вперёд">▶</button>
+                    <button id="nav-end" type="button" aria-label="К концу">⏭</button>
+                </span>
             </div>
         </div>
         <div id="verdict" class="verdicts" hidden></div>
@@ -64,7 +72,39 @@
             <h2>Ходы</h2>
             <ol id="moves" class="moves"></ol>
         </div>
-        <div class="panel chat-panel">
+        <div class="tabs" role="tablist">
+            <button id="tab-coach" type="button" role="tab" class="tab active">Тренер</button>
+            <button id="tab-online" type="button" role="tab" class="tab">Онлайн <span id="online-badge" class="tab-badge" hidden></span></button>
+            <button id="tab-archive" type="button" role="tab" class="tab">Партии</button>
+        </div>
+        <div id="online-panel" class="panel online-panel" hidden>
+            <form id="auth-form" class="online-form">
+                <h2>Вход для игры по сети</h2>
+                <input id="auth-nick" autocomplete="username" maxlength="20" placeholder="Ник" aria-label="Ник">
+                <input id="auth-pass" type="password" autocomplete="current-password" maxlength="200" placeholder="Пароль" aria-label="Пароль">
+                <input id="auth-invite" autocomplete="off" placeholder="Код приглашения (только для нового аккаунта)" aria-label="Код приглашения">
+                <div class="row">
+                    <button type="submit" class="primary">Войти</button>
+                    <button id="auth-register" type="button">Создать аккаунт</button>
+                </div>
+            </form>
+            <div id="online-main" hidden>
+                <div class="row spread">
+                    <span>Вы: <b id="online-me"></b></span>
+                    <button id="online-logout" type="button">Выйти</button>
+                </div>
+                <div id="online-active"></div>
+                <button id="online-queue" type="button" class="primary wide">Найти соперника</button>
+                <form id="friend-form" class="row">
+                    <input id="friend-nick" maxlength="20" placeholder="Ник друга" aria-label="Ник друга">
+                    <button type="submit">Добавить</button>
+                </form>
+                <div id="online-lists"></div>
+            </div>
+            <p id="online-error" class="online-error" role="alert" hidden></p>
+        </div>
+        <div id="archive-panel" class="panel online-panel" hidden></div>
+        <div id="coach-panel" class="panel chat-panel">
             <h2>Тренер <small id="focus-label"></small></h2>
             <div id="chat" class="chat" aria-live="polite">
                 <p class="msg coach">Сделайте ход, и я помогу его разобрать. Спрашивайте о чём угодно: например, «почему не Nf3?»</p>

@@ -62,7 +62,7 @@ public record GameResponse(
     }
 
     /** Запись ходов нужна браузеру заранее: по ней он сразу выбирает звук своего хода — шах, мат или обычный. */
-    private static Map<String, String> legalMoveSans(Board board) {
+    static Map<String, String> legalMoveSans(Board board) {
         Map<String, String> sans = new LinkedHashMap<>();
         for (Move move : board.legalMoves()) {
             sans.put(move.toUci(), board.toSan(move));
@@ -70,7 +70,7 @@ public record GameResponse(
         return sans;
     }
 
-    private static List<MoveResponse> moves(List<MoveRecord> records) {
+    static List<MoveResponse> moves(List<MoveRecord> records) {
         List<MoveResponse> moves = new ArrayList<>(records.size());
         for (int ply = 0; ply < records.size(); ply++) {
             MoveRecord record = records.get(ply);
@@ -86,7 +86,7 @@ public record GameResponse(
         return EvalFormatter.format(analysis.get(0).score() * (board.isWhiteToMove() ? 1 : -1));
     }
 
-    private static String statusText(GameStatus status, Board board, boolean playerWhite) {
+    static String statusText(GameStatus status, Board board, boolean playerWhite) {
         boolean playerToMove = board.isWhiteToMove() == playerWhite;
         return switch (status) {
             case ACTIVE -> board.inCheck() ? "Шах!" : (playerToMove ? "Ваш ход" : "Ход соперника");
